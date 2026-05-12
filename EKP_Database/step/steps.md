@@ -39,6 +39,18 @@
   - `residual_analysis.md`
   - `prediction_plots/` 下的可视化图
 
+  ## Step 6: 轻量化深度学习框架
+  - 新增 `deep_learning/` 目录与模块化结构：
+    - datasets: Dataset 与 collate
+    - encoders: embedding/cnn/mlp
+    - pooling: mean/max/attention
+    - fusion: concat/add/multiply
+    - models: baseline/cnn
+    - trainer: train/evaluate/metrics
+    - configs: 默认配置
+    - experiments: 实验记录
+  - 目标：支持替换编码器、池化与融合方式，便于后续消融。
+
 ## Next
-- 如果需要提升性能：在不引入深度模型的前提下尝试更多统计学习方法或特征选择。
+- 在不引入大型模型的前提下，尝试轻量化深度学习基线与消融。
 - 若后续扩展到 $K_m$ 或 $K_i$，按相同流程复用脚本。
