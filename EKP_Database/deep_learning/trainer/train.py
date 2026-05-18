@@ -235,6 +235,7 @@ def main() -> None:
     plt.title("Predicted vs Actual")
     plt.tight_layout()
     plt.savefig(output_dir / "pred_vs_actual.png", dpi=150)
+    plt.savefig(output_dir / "prediction_plot.png", dpi=150)
     plt.close()
 
     plt.figure(figsize=(6, 4))
@@ -251,6 +252,7 @@ def main() -> None:
     plt.title("Residual vs Predicted")
     plt.tight_layout()
     plt.savefig(output_dir / "residual_vs_pred.png", dpi=150)
+    plt.savefig(output_dir / "residual_plot.png", dpi=150)
     plt.close()
 
 

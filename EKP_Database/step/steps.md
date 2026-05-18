@@ -54,3 +54,27 @@
 ## Next
 - 在不引入大型模型的前提下，尝试轻量化深度学习基线与消融。
 - 若后续扩展到 $K_m$ 或 $K_i$，按相同流程复用脚本。
+
+## Step 7: CNN Encoder Ablation (Mean Pooling + Concat)
+- Implemented a lightweight 1D CNN encoder (Embedding -> Conv1D -> ReLU -> Conv1D) for both protein and compound branches.
+- Kept pooling, fusion, data split, and trainer settings fixed to isolate encoder effects.
+- Result: CNN + mean pooling achieved test RMSE 1.2395 and R2 0.4466, improving over embedding + max pooling but slightly below embedding + mean pooling.
+
+## Step 8: Formal Experiment Comparison Table
+- Consolidated statistical baselines (Linear Regression, Random Forest, XGBoost) and deep learning runs (Embedding+Mean, Embedding+Max, CNN+Mean).
+- Produced a paper-ready CSV/Markdown table with RMSE/MAE/R2 and short interpretations.
+- Conclusion: mean pooling is consistently stronger than max pooling; encoder changes are secondary to pooling choice under the same budget.
+
+## Step 9: Framework Diagram
+- Created a clean architecture diagram for the lightweight multimodal sequence regression framework.
+- Diagram highlights encoder, pooling, fusion, and regression head modules for reproducibility-focused reporting.
+
+## Step 10: Experimental Results Section
+- Reviewed baseline outputs in `results/models/` and DL experiment summaries in `deep_learning/experiments/`.
+- Compiled RMSE/MAE/R2 comparisons for baseline models, pooling ablation (mean vs max), and encoder ablation (embedding vs CNN).
+- Observed that mean pooling provides faster, more stable convergence and better test performance; encoder changes yield smaller gains under the current lightweight setting.
+
+## Step 11: Paper Structure Refactor
+- Refactored the paper layout to separate methodology, experimental design, and experimental results for clearer scientific reporting.
+- This separation prevents overlap between setup descriptions and performance discussion, improving reproducibility and reader traceability.
+- Added a dedicated dataset and preprocessing section covering data sources, file structure, cleaning, and the 8:1:1 split.
