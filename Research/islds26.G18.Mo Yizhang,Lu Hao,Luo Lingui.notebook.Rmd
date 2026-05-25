@@ -1,0 +1,170 @@
+---
+title: "Machine Learning vs Lightweight Deep Learning"
+date: "2026-05-18"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+---
+
+## Overview
+
+This report summarizes the comparison between classical machine learning baselines and the lightweight deep learning pipeline. It also embeds the key visual outputs for advisor review.
+
+```{r setup, echo=FALSE, message=FALSE}
+knitr::opts_chunk$set(fig.align = "center", out.width = "80%", dev = "svg")
+
+comparison <- read.csv("../EKP_Database/deep_learning/experiments/experiment_comparison.csv")
+ml_results <- read.csv("../EKP_Database/results/models/baseline_results.csv")
+feature_importance <- read.csv("../EKP_Database/results/models/feature_importance.csv")
+cor_mat <- read.csv("../EKP_Database/results/eda/correlation_analysis.csv", row.names = 1, check.names = FALSE)
+features <- read.csv("../EKP_Database/interim/statistical_features/dlkcat_statistical_features.csv")
+```
+
+## Metrics Formulas (LaTeX)
+
+$$
+\mathrm{RMSE} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2}
+$$
+
+$$
+\mathrm{MAE} = \frac{1}{n} \sum_{i=1}^{n} \lvert y_i - \hat{y}_i \rvert
+$$
+
+$$
+R^2 = 1 - \frac{\sum_{i=1}^{n} (y_i - \hat{y}_i)^2}{\sum_{i=1}^{n} (y_i - \bar{y})^2}
+$$
+
+## Overall Comparison (Test Metrics)
+
+```{r comparison-table, echo=FALSE}
+comparison
+```
+
+## Machine Learning Results
+
+### Baseline Metrics (Valid/Test)
+
+```{r ml-metrics, echo=FALSE}
+ml_results
+```
+
+### Feature Importance
+
+```{r rf-importance, echo=FALSE}
+rf <- subset(feature_importance, model == "RandomForest")
+barplot(
+  rf$importance,
+  names.arg = rf$feature,
+  las = 2,
+  cex.names = 0.8,
+  main = "RandomForest Feature Importance",
+  ylab = "Importance"
+)
+```
+
+```{r xgb-importance, echo=FALSE}
+xgb <- subset(feature_importance, model == "XGBoost")
+barplot(
+  xgb$importance,
+  names.arg = xgb$feature,
+  las = 2,
+  cex.names = 0.8,
+  main = "XGBoost Feature Importance",
+  ylab = "Importance"
+)
+```
+
+## Lightweight Deep Learning Results
+
+### Default Run (Embedding + Mean Pooling)
+
+```{r dl-summary-table, echo=FALSE}
+comparison
+```
+
+### Ablation: CNN Encoder
+
+```{r dl-encoder-compare, echo=FALSE}
+dl_rows <- comparison[comparison$Encoder != "N/A", ]
+barplot(
+  dl_rows$RMSE,
+  names.arg = dl_rows$Model,
+  las = 2,
+  cex.names = 0.8,
+  main = "Deep Learning RMSE (Test)",
+  ylab = "RMSE"
+)
+```
+
+### Ablation: Max Pooling
+
+```{r dl-pooling-compare, echo=FALSE}
+pooling_rmse <- dl_rows[, c("Model", "Pooling", "RMSE")]
+barplot(
+  pooling_rmse$RMSE,
+  names.arg = pooling_rmse$Model,
+  las = 2,
+  cex.names = 0.8,
+  main = "Pooling Choice vs RMSE",
+  ylab = "RMSE"
+)
+```
+
+## EDA Visuals
+
+```{r eda-corr, echo=FALSE}
+cor_matrix <- as.matrix(cor_mat)
+heatmap(
+  cor_matrix,
+  Rowv = NA,
+  Colv = NA,
+  scale = "none",
+  main = "Correlation Heatmap"
+)
+```
+
+```{r eda-target, echo=FALSE}
+hist(
+  features$log10_kcat,
+  breaks = 40,
+  main = "Target Distribution (log10 kcat)",
+  xlab = "log10(kcat)"
+)
+```
+
+## Feature Distribution Boxplots
+
+```{r boxplot-protein, echo=FALSE}
+protein_cols <- c(
+  "protein_len",
+  "protein_min",
+  "protein_median",
+  "protein_mean",
+  "protein_std",
+  "protein_max"
+)
+boxplot(
+  features[, protein_cols],
+  las = 2,
+  cex.axis = 0.8,
+  main = "Protein Feature Distributions"
+)
+```
+
+```{r boxplot-compound, echo=FALSE}
+compound_cols <- c(
+  "compound_len",
+  "compound_min",
+  "compound_median",
+  "compound_mean",
+  "compound_std",
+  "compound_max"
+)
+boxplot(
+  features[, compound_cols],
+  las = 2,
+  cex.axis = 0.8,
+  main = "Compound Feature Distributions"
+)
+```

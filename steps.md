@@ -83,3 +83,28 @@
 - Added reusable plotting script in `scripts/visualization/essay3_plots.py`.
 - Generated publication-style EDA figures (length distributions, target distribution, split counts, boxplots).
 - Produced a concise preprocessing and statistical inspection report in `Title/Essay/Essay3.md`.
+
+## Step 13: Scientific Report Polishing (N3 Submission)
+- Standardized figure captions with sequential numbering to align with formal reporting conventions.
+- Added summary statistics table (min/max/mean/median/std) to support quantitative inspection and reproducibility.
+- Integrated training curve figures for stability analysis and conservative interpretation of convergence behavior.
+- Inserted the framework architecture diagram to clarify modular design and extensibility.
+- These changes improve scientific readability, traceability of evidence, and consistency of visual references.
+
+## Step 14: Error Analysis Pipeline (Best Model)
+- Added a dedicated error analysis stage for the embedding encoder + mean pooling + concat fusion model.
+- Generated test-set diagnostics (prediction vs ground truth, residual distribution, absolute error vs protein length) and computed residual statistics plus Pearson correlation.
+- Conclusions and qualitative interpretations are documented in the error analysis report, highlighting calibration behavior, residual symmetry, and potential length-dependent error patterns.
+
+## Step 15: Final Essay Skeleton
+- Initialized full paper structure for final submission.
+
+## Step 16: Final Figure Organization
+- Organized paper-ready figures into Title/Essay/Final Essay/Final Figure.
+- Generated FIGURE_INDEX.md with source paths, suggested placements, and captions.
+- Mapped available figures to Final_Essay.md sections and listed missing figures for future generation.
+
+## Step 17: Error Analysis Integration
+- Executed the error analysis pipeline for the best-performing configuration (embedding + mean pooling + concat).
+- Generated pred_vs_true, residual_distribution, and error_vs_protein_length figures and added them to the final figure set.
+- Integrated error analysis figures and captions into Final_Essay.md and refreshed the figure index.

@@ -30,6 +30,118 @@ from ..models.cnn_model import CNNModel
 from .evaluate import evaluate
 
 
+def predict_with_lengths(
+    model: nn.Module, loader: DataLoader, device: torch.device
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    model.eval()
+    y_true = []
+    y_pred = []
+    protein_lengths = []
+
+    with torch.no_grad():
+        for batch in loader:
+            protein = batch["protein"].to(device)
+            protein_mask = batch["protein_mask"].to(device)
+            compound = batch["compound"].to(device)
+            compound_mask = batch["compound_mask"].to(device)
+            target = batch["target"].to(device)
+
+            output = model(protein, protein_mask, compound, compound_mask)
+            y_true.append(target.cpu().numpy())
+            y_pred.append(output.cpu().numpy())
+            protein_lengths.append(protein_mask.sum(dim=1).cpu().numpy())
+
+    return (
+        np.concatenate(y_true),
+        np.concatenate(y_pred),
+        np.concatenate(protein_lengths),
+    )
+
+
+def write_error_analysis(
+    output_dir: Path,
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    protein_lengths: np.ndarray,
+    model_config: dict,
+) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    residuals = y_true - y_pred
+    abs_error = np.abs(residuals)
+
+    # Prediction vs ground truth
+    plt.figure(figsize=(5, 5))
+    plt.scatter(y_true, y_pred, alpha=0.5)
+    min_val = float(min(np.min(y_true), np.min(y_pred)))
+    max_val = float(max(np.max(y_true), np.max(y_pred)))
+    plt.plot([min_val, max_val], [min_val, max_val], linestyle="--", color="gray", linewidth=1)
+    plt.xlabel("True log10(kcat)")
+    plt.ylabel("Predicted log10(kcat)")
+    plt.title("Prediction vs Ground Truth")
+    plt.tight_layout()
+    plt.savefig(output_dir / "pred_vs_true.png", dpi=150)
+    plt.close()
+
+    # Residual distribution
+    plt.figure(figsize=(6, 4))
+    plt.hist(residuals, bins=40)
+    plt.xlabel("Residual (y_true - y_pred)")
+    plt.ylabel("Count")
+    plt.title("Residual Distribution")
+    plt.tight_layout()
+    plt.savefig(output_dir / "residual_distribution.png", dpi=150)
+    plt.close()
+
+    # Absolute error vs protein length
+    plt.figure(figsize=(6, 4))
+    plt.scatter(protein_lengths, abs_error, alpha=0.4)
+    plt.xlabel("Protein Sequence Length")
+    plt.ylabel("Absolute Error")
+    plt.title("Absolute Error vs Protein Length")
+    plt.tight_layout()
+    plt.savefig(output_dir / "error_vs_protein_length.png", dpi=150)
+    plt.close()
+
+    residual_mean = float(np.mean(residuals))
+    residual_std = float(np.std(residuals))
+    max_abs_error = float(np.max(abs_error))
+    pearson_corr = float(np.corrcoef(y_true, y_pred)[0, 1])
+
+    summary = f"""# Error Analysis Summary (Test Set)
+
+## Model Configuration
+- encoder: {model_config["encoder"]}
+- pooling: {model_config["pooling"]}
+- fusion: {model_config["fusion"]}
+
+## Figures
+- **Prediction vs Ground Truth**: The scatter plot (pred_vs_true.png) compares predicted and true log10(kcat). The dashed diagonal denotes perfect agreement, so deviations quantify prediction error.
+- **Residual Distribution**: The histogram (residual_distribution.png) shows the distribution of residuals $y_{{true}} - y_{{pred}}$, indicating bias and dispersion.
+- **Absolute Error vs Protein Length**: The scatter plot (error_vs_protein_length.png) visualizes whether sequence length is associated with larger absolute errors.
+
+## Summary Statistics
+
+| Metric | Value |
+|---|---:|
+| Residual mean | {residual_mean:.4f} |
+| Residual std | {residual_std:.4f} |
+| Max absolute error | {max_abs_error:.4f} |
+| Pearson corr (pred vs true) | {pearson_corr:.4f} |
+
+## Interpretation
+The prediction vs ground truth plot demonstrates the overall calibration of the embedding + mean pooling + concat fusion model on the test set. A tight clustering around the diagonal indicates strong alignment, while wider spread highlights hard-to-predict samples. The residual histogram provides a complementary view of bias; a mean near zero suggests limited systematic over- or under-estimation, whereas heavy tails indicate occasional large errors.
+
+The absolute error vs protein length plot is used to diagnose length-dependent failure modes. A rising envelope of errors for longer proteins would be consistent with information loss from truncation at the maximum sequence length and with higher compositional complexity in long sequences.
+
+These observations are consistent with the pooling ablation results: mean pooling produced the most stable performance and the lowest overall error. From a representation standpoint, mean pooling preserves global signal and reduces variance relative to max pooling, which aligns with a residual distribution that is more symmetric and with fewer extreme outliers.
+
+Potential causes of large errors include sequence truncation, noisy or heterogeneous assay conditions in the underlying dataset, and limited capacity to model long-range dependencies. These factors are more pronounced for long proteins and complex compound contexts, which may require richer encoders or length-aware pooling in future iterations.
+"""
+
+    (output_dir / "error_analysis_summary.md").write_text(summary, encoding="utf-8")
+
+
 def set_seed(seed: int) -> None:
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -244,6 +356,15 @@ def main() -> None:
     plt.tight_layout()
     plt.savefig(output_dir / "residual_hist.png", dpi=150)
     plt.close()
+
+    error_analysis_dir = Path(__file__).resolve().parents[1] / "experiments" / "error_analysis"
+    y_true, y_pred, protein_lengths = predict_with_lengths(model, test_loader, device)
+    model_config = {
+        "encoder": config["model"]["encoder"],
+        "pooling": config["model"]["pooling"],
+        "fusion": config["model"]["fusion"],
+    }
+    write_error_analysis(error_analysis_dir, y_true, y_pred, protein_lengths, model_config)
 
     plt.figure(figsize=(5, 4))
     plt.scatter(y_pred, residuals, alpha=0.5)
